@@ -126,7 +126,9 @@ function mulberry32(a) {
 const BW = 2.4;            // semiancho del puente
 const FOCAL = 6;           // distancia focal de la cámara
 const CAM_BACK = 5;        // distancia de la cámara detrás de la multitud
-const SPEED = 7;           // velocidad de avance (unidades/s)
+function runSpeed() {      // velocidad de avance (unidades/s), crece con el nivel
+  return 11 + Math.min(5, (game.level - 1) * 0.5);
+}
 const VIEW_FAR = 55;       // distancia de dibujado
 const RENDER_CAP = 200;    // máximo de muñecos dibujados
 const MAX_COUNT = 9999;
@@ -215,7 +217,7 @@ function genLevel(level) {
   let z = 26;
   let expected = 10; // mejor recuento alcanzable jugando bien
   const nPairs = 5 + Math.min(6, Math.floor(level / 2));
-  const badProb = Math.min(0.45 + level * 0.05, 0.8);
+  const badProb = Math.min(0.55 + level * 0.05, 0.9);
 
   for (let i = 0; i < nPairs; i++) {
     // Puerta buena
@@ -248,19 +250,19 @@ function genLevel(level) {
                     : g.kind === '+' ? c + g.val : g.kind === '-' ? c - g.val : Math.floor(c / 2);
     expected = Math.min(MAX_COUNT, Math.max(apply(expected, pairs[i].left), apply(expected, pairs[i].right)));
 
-    z += 15 + rng() * 6;
+    z += 12 + rng() * 5;
 
     // Horda intermedia
     if (i >= 1 && i < nPairs - 1 && rng() < 0.75) {
-      const hc = Math.max(4, Math.round(expected * (0.28 + rng() * 0.22)));
+      const hc = Math.max(4, Math.round(expected * (0.35 + rng() * 0.23)));
       hordes.push({ z: z, count: hc, x: (rng() - 0.5) * 1.4, dead: false });
       expected -= hc;
-      z += 13 + rng() * 5;
+      z += 11 + rng() * 4;
     }
   }
 
   const bossZ = z + 20;
-  const bossHp = Math.max(25, Math.round(expected * (0.5 + Math.min(0.3, level * 0.03))));
+  const bossHp = Math.max(25, Math.round(expected * (0.68 + Math.min(0.24, level * 0.03))));
   return {
     pairs: pairs,
     hordes: hordes,
@@ -391,14 +393,14 @@ function update(dt) {
 
   // --- movimiento lateral ---
   const kdx = (keys.ArrowRight ? 1 : 0) - (keys.ArrowLeft ? 1 : 0);
-  crowd.targetX += kdx * 4.2 * dt;
+  crowd.targetX += kdx * 6.5 * dt;
   const xLim = Math.max(0.4, BW - 0.2 - crowdRadius(g.count) * 0.55);
   crowd.targetX = Math.max(-xLim, Math.min(xLim, crowd.targetX));
-  crowd.x += (crowd.targetX - crowd.x) * Math.min(1, dt * 10);
+  crowd.x += (crowd.targetX - crowd.x) * Math.min(1, dt * 13);
 
   // --- avance ---
-  if (g.state === 'run') crowd.z += SPEED * dt;
-  else if (g.state === 'battle' || g.state === 'boss') crowd.z += SPEED * 0.14 * dt;
+  if (g.state === 'run') crowd.z += runSpeed() * dt;
+  else if (g.state === 'battle' || g.state === 'boss') crowd.z += runSpeed() * 0.14 * dt;
 
   cam.z = crowd.z - CAM_BACK;
   cam.x += (crowd.x * 0.55 - cam.x) * Math.min(1, dt * 6);
@@ -462,7 +464,7 @@ function update(dt) {
   if (g.state === 'battle' || g.state === 'boss') {
     const t = g.battleTarget;
     const enemyLeft = g.state === 'battle' ? t.count : t.hp;
-    const rate = Math.max(10, Math.min(g.count, enemyLeft) * 1.6); // bajas por segundo
+    const rate = Math.max(14, Math.min(g.count, enemyLeft) * 2.6); // bajas por segundo
     g.drainAcc += rate * dt;
     const kills = Math.min(Math.floor(g.drainAcc), g.count, enemyLeft);
     if (kills > 0) {
@@ -522,7 +524,7 @@ function drawGuy(px, py, s, bodyC, headC, phase, popScale) {
     ctx.fillRect(px - 1, py - 2, 2, 2);
     return;
   }
-  const bob = Math.sin(game.time * 13 + phase) * size * 0.05;
+  const bob = Math.sin(game.time * 16 + phase) * size * 0.06;
   // sombra
   ctx.fillStyle = 'rgba(0,0,0,0.28)';
   ctx.beginPath();
